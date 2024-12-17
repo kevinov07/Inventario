@@ -23,51 +23,29 @@ const getStocks = async (req, res) => {
   }
 };
 
-// Obtener stock por tienda
-// Obtener stock por tienda y rango de fechas, agrupado por product_id
+// Obtener stock por tienda con nombre del producto, id y cantidad en stock
 const getStockByTienda = async (req, res) => {
-  const { tienda, fechaInicio, fechaFin } = req.query;
-
+  const { tiendaId } = req.params; // Captura el ID de la tienda desde los parámetros de la URL
   try {
-    if (!tienda || !fechaInicio || !fechaFin) {
-      return res.status(400).json({
-        message: 'Por favor proporciona el ID de la tienda, fechaInicio y fechaFin',
-      });
+    const stocks = await Stock.find({ tienda: tiendaId })
+      .select('producto cantidad_en_stock') // Proyección para mostrar solo los campos deseados
+      .populate('producto', 'nombre'); // Populate para traer el nombre del producto
+
+    if (stocks.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron stocks para esta tienda' });
     }
 
-    const inicio = new Date(fechaInicio);
-    const fin = new Date(fechaFin);
+    // Formatear respuesta para claridad
+    const formattedStocks = stocks.map(stock => ({
+      id: stock.producto._id,
+      nombre: stock.producto.nombre,
+      cantidad_en_stock: stock.cantidad_en_stock
+    }));
 
-    // Agregación para agrupar por product_id y sumar el stock
-    const stocks = await Stock.aggregate([
-      {
-        $match: {
-          tienda: tienda,
-          fecha_llegada: { $gte: inicio, $lte: fin },
-        },
-      },
-      {
-        $group: {
-          _id: '$producto', // Agrupa por el ID del producto
-          total_cantidad: { $sum: '$cantidad_en_stock' }, // Suma la cantidad de stock
-        },
-      },
-      {
-        $project: {
-          product_id: '$_id', // Renombra el campo _id a product_id
-          total_cantidad: 1,  // Mantiene el total_cantidad
-          _id: 0,             // Excluye el campo original _id
-        },
-      },
-    ]);
-
-    res.status(200).json(stocks);
+    res.status(200).json(formattedStocks);
   } catch (error) {
-    res.status(500).json({
-      message: 'Error al obtener el stock agrupado por product_id',
-      error,
-    });
+    res.status(500).json({ message: 'Error al obtener stock por tienda', error });
   }
 };
 
-module.exports = { createStock, getStocks, getStockByTienda };
+module.exports = { createStock, getStocks, getStockByTienda};
