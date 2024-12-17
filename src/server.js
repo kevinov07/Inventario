@@ -26,8 +26,8 @@ app.use('/api/stocks', stockRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/orders', orderRoutes);
-
-
+//TODO: completar los reportes
+//TODO: implementar redis
 
 // Ruta de prueba
 app.get('/', (req, res) => {
