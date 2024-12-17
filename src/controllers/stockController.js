@@ -24,7 +24,7 @@ const getStocks = async (req, res) => {
 };
 
 // Obtener stock por tienda
-// Obtener stock por tienda y rango de fechas
+// Obtener stock por tienda y rango de fechas, agrupado por product_id
 const getStockByTienda = async (req, res) => {
   const { tienda, fechaInicio, fechaFin } = req.query;
 
@@ -38,15 +38,33 @@ const getStockByTienda = async (req, res) => {
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
 
-    const stocks = await Stock.find({
-      tienda: tienda,
-      fecha_llegada: { $gte: inicio, $lte: fin },
-    });
+    // Agregación para agrupar por product_id y sumar el stock
+    const stocks = await Stock.aggregate([
+      {
+        $match: {
+          tienda: tienda,
+          fecha_llegada: { $gte: inicio, $lte: fin },
+        },
+      },
+      {
+        $group: {
+          _id: '$producto', // Agrupa por el ID del producto
+          total_cantidad: { $sum: '$cantidad_en_stock' }, // Suma la cantidad de stock
+        },
+      },
+      {
+        $project: {
+          product_id: '$_id', // Renombra el campo _id a product_id
+          total_cantidad: 1,  // Mantiene el total_cantidad
+          _id: 0,             // Excluye el campo original _id
+        },
+      },
+    ]);
 
     res.status(200).json(stocks);
   } catch (error) {
     res.status(500).json({
-      message: 'Error al obtener el stock por tienda y rango de fechas',
+      message: 'Error al obtener el stock agrupado por product_id',
       error,
     });
   }

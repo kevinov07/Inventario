@@ -4,7 +4,7 @@ const productSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
   descripcion: { type: String },
   numero_serie: { type: String, required: true },
-  categoria: { type: String},
+  categoria: { type: mongoose.Schema.Types.ObjectId, ref: 'Proveedor' },
   precio_unitario: { type: Number, required: true },
   fecha_caducidad: { type: Date, required: true},
   proveedor: { type: mongoose.Schema.Types.ObjectId, ref: 'Proveedor' },
